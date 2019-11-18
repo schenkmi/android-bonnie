@@ -4,7 +4,7 @@ bonnie++ \- program to test hard drive performance.
 
 .SH "SYNOPSIS"
 .B bonnie++
-.I [\-d dir] [\-s size(MiB)[:chunk\-size(b)]]
+.I [\-d dir] [\-c concurrency] [\-s size(MiB)[:chunk\-size(b)[:seeks[:seekers]]]]
 .I [\-n number\-to\-stat(*1024)[:max\-size[:min\-size][:num\-directories[:chunk\-size]]]]
 .I [\-m machine\-name] [\-r ram\-size\-in\-MiB] [\-x number\-of\-tests]
 .I [\-u uid\-to\-use:gid\-to\-use] [\-g gid\-to\-use]
@@ -21,7 +21,8 @@ the lack therof. There are a many different types of file system operations
 which different applications use to different degrees. Bonnie++ tests some of
 them and for each test gives a result of the amount of work done per second
 and the percentage of CPU time this took. For performance results higher
-numbers are better, for CPU usage lower are better (NB a configuration scoring
+numbers are better, for CPU usage and latency lower are better (NB a
+configuration scoring
 a performance result of 2000 and a CPU result of 90% is better in terms of CPU
 use than a configuration delivering performance of 1000 and CPU usage of 60%).
 .P
@@ -41,6 +42,10 @@ then the next parameter contains the value.
 .B \-d
 the directory to use for the tests.
 .TP
+.B \-c
+the level of concurrency (default 1). The number of copies of the test to be
+performed at the same time.
+.TP
 .B \-s
 the size of the file(s) for IO performance measures in megabytes. If the size
 is greater than 1G then multiple files will be used to store the data, and
@@ -48,7 +53,9 @@ each file will be up to 1G in size.  This parameter may include the chunk size
 seperated from the size by a colon.  The chunk\-size is measured in bytes and
 must be a power of two from 256 to 1048576, the default is 8192.  NB You can
 specify the size in giga\-bytes or the chunk\-size in kilo\-bytes if you add
-\f3g\f1 or \f3k\f1 to the end of the number respectively.
+\f3g\f1 or \f3k\f1 to the end of the number respectively.  This parameter may
+also include the number of seeks (default 8192) and the number of seeker
+processes (default 5).
 
 If the specified size is 0 then this test will be skipped.
 .TP
@@ -193,12 +200,19 @@ and
 .B bon_csv2txt
 to convert CSV data to HTML and plain\-ascii respectively.
 .P
+The "Name:Size etc" field has the name, filesize, IO chunk size, concurrency,
+number of seeks, and number of seek processes separated by : characters.
+.P
 For every test two numbers are reported, the amount of work done (higher
 numbers are better) and the percentage of CPU time taken to perform the work
 (lower numbers are better). If a test completes in less than 500ms then
 the output will be displayed as "++++". This is because such a test result
 can't be calculated accurately due to rounding errors and I would rather
 display no result than a wrong result.
+.P
+Data volumes for the 80 column text display use "K" for KiB (1024 bytes), "M"
+for MiB (1048576 bytes), and "G" for GiB (1073741824 bytes).  So K/sec means
+a multiple of 1024 bytes per second.
 
 .SH "AUTHOR"
 This program, its manual page, and the Debian package were written by

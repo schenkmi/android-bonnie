@@ -34,12 +34,11 @@ enum getc_tests_t
 static void print_stat(FILE *fp, double elapsed, int test_size, bool csv);
 static void print_all_res(CPCCHAR machine, FILE *fp, double *res, int size, bool csv);
 
-#define WRITE_SIZE_FACT 32
-#define GETC_SIZE_FACT 4
+#define WRITE_SIZE_FACT 64
 
 int main(int argc, char *argv[])
 {
-  int file_size = 40 << 10;
+  int file_size = 512 << 10;
   PCCHAR dir = ".";
   bool quiet = false;
   char *userName = NULL, *groupName = NULL;
@@ -199,7 +198,7 @@ int main(int argc, char *argv[])
     return 1;
   }
   fflush(NULL);
-  size = file_size / GETC_SIZE_FACT;
+  size = file_size;
   TEST_FUNC_WRITE("putc(c, fp)", if(putc(c, fp) == EOF), res[Putc]);
   if(fseek(fp, 0, SEEK_SET) != 0)
   {
@@ -250,8 +249,8 @@ static void print_all_res(CPCCHAR machine, FILE *fp, double *res, int size, bool
   print_stat(fp, res[Read], size / WRITE_SIZE_FACT, csv);
   print_stat(fp, res[PutcNoTh], size, csv);
   print_stat(fp, res[GetcNoTh], size, csv);
-  print_stat(fp, res[Putc], size / GETC_SIZE_FACT, csv);
-  print_stat(fp, res[Getc], size / GETC_SIZE_FACT, csv);
+  print_stat(fp, res[Putc], size, csv);
+  print_stat(fp, res[Getc], size, csv);
   print_stat(fp, res[PutcUnlocked], size, csv);
   print_stat(fp, res[GetcUnlocked], size, csv);
   fprintf(fp, "\n");

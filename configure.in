@@ -2,9 +2,9 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(bonnie++.cpp)
 AC_CONFIG_HEADER(conf.h)
 AC_SUBST(version)
-version="1.96"
+version="1.98"
 AC_SUBST(csv_version)
-csv_version="1.96"
+csv_version="1.98"
 
 AC_ARG_ENABLE(stripping,
       [  --disable-stripping  disables stripping of installed binaries],
@@ -22,7 +22,7 @@ fi
 
 AC_SUBST(debug)
 AC_ARG_ENABLE(debug,
-      [  --with-debug  enables debug code generation for binaries],
+      [  --enable-debug  enables debug code generation for binaries],
       debug=-g, debug="")
 echo $DEB_BUILD_OPTIONS | grep -q debug
 if [[ "$?" = "0" ]]; then
@@ -96,7 +96,7 @@ AC_TRY_RUN([#ifndef _LARGEFILE64_SOURCE
 int main () {
   int fd;
   off64_t i = off64_t(1) << 32 + 1;
-  char *name = "test.2g";
+  const char * const name = "test.2g";
 
   fd = open64(name, O_CREAT|O_RDWR|O_EXCL|O_LARGEFILE,
               S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);

@@ -67,13 +67,15 @@ public:
   bool bufSync;
   int  io_chunk_bits;
   int  file_chunk_bits;
+  int  file_seeks;
+  int  file_seek_procs;
   int io_chunk_size() const { return m_io_chunk_size; }
   int file_chunk_size() const { return m_file_chunk_size; }
   bool *doExit;
   void set_io_chunk_size(int size)
     { delete m_buf; pa_new(size, m_buf, m_buf_pa); m_io_chunk_size = size; }
   void set_file_chunk_size(int size)
-    { delete m_buf; m_buf = new char[__max(size, m_io_chunk_size)]; m_file_chunk_size = size; }
+    { delete m_buf; m_buf = new char[max(size, m_io_chunk_size)]; m_file_chunk_size = size; }
 
   // Return the page-aligned version of the local buffer
   char *buf() { return m_buf_pa; }
@@ -132,13 +134,15 @@ CGlobalItems::CGlobalItems(bool *exitFlag)
  , bufSync(false)
  , io_chunk_bits(DefaultChunkBits)
  , file_chunk_bits(DefaultChunkBits)
+ , file_seeks(DefaultSeeks)
+ , file_seek_procs(DefaultSeekProcCount)
  , doExit(exitFlag)
  , m_io_chunk_size(DefaultChunkSize)
  , m_file_chunk_size(DefaultChunkSize)
  , m_buf(NULL)
  , m_buf_pa(NULL)
 {
-  pa_new(__max(m_io_chunk_size, m_file_chunk_size), m_buf, m_buf_pa);
+  pa_new(max(m_io_chunk_size, m_file_chunk_size), m_buf, m_buf_pa);
   SetName(".");
 }
 
@@ -299,11 +303,21 @@ int main(int argc, char *argv[])
 #else
         file_size = size_from_str(size, "g");
 #endif
-        size = strtok(NULL, "");
-        if(size)
+        char * chunk_size = strtok(NULL, ":");
+        if(chunk_size)
         {
-          int tmp = size_from_str(size, "k");
-          globals.set_io_chunk_size(tmp);
+          char *seeks, *seek_procs;
+          seeks = strtok(NULL, ":");
+          globals.set_io_chunk_size(size_from_str(chunk_size, "k"));
+          if(seeks)
+          {
+            seek_procs = strtok(NULL, "");
+            globals.file_seeks = size_from_str(seeks, "k");
+            if(seek_procs)
+            {
+              globals.file_seek_procs = size_from_str(seek_procs, NULL);
+            }
+          }
         }
         setSize = true;
         free(sbuf);
@@ -393,8 +407,8 @@ int main(int argc, char *argv[])
     usage();
   }
 #endif
-  globals.byte_io_size = __min(file_size, globals.byte_io_size);
-  globals.byte_io_size = __max(0, globals.byte_io_size);
+  globals.byte_io_size = min(file_size, globals.byte_io_size);
+  globals.byte_io_size = max(0, globals.byte_io_size);
 
   if(machine == NULL)
   {
@@ -503,7 +517,7 @@ int main(int argc, char *argv[])
     {
       globals.timer.SetType(BonTimer::txt);
       rc = globals.timer.DoReportIO(file_size, globals.byte_io_size
-                    , globals.io_chunk_size(), globals.quiet ? stderr : stdout);
+                    , globals.io_chunk_size(), globals.file_seeks, globals.file_seek_procs, globals.quiet ? stderr : stdout);
       rc |= globals.timer.DoReportFile(directory_size
                     , directory_max_size, directory_min_size, num_directories
                     , globals.file_chunk_size()
@@ -512,7 +526,7 @@ int main(int argc, char *argv[])
     // print a csv version in every case
     globals.timer.SetType(BonTimer::csv);
     rc = globals.timer.DoReportIO(file_size, globals.byte_io_size
-                   , globals.io_chunk_size(), stdout);
+                   , globals.io_chunk_size(), globals.file_seeks, globals.file_seek_procs, stdout);
     rc |= globals.timer.DoReportFile(directory_size
                     , directory_max_size, directory_min_size, num_directories
                     , globals.file_chunk_size(), stdout);
@@ -690,7 +704,7 @@ TestFileOps(int file_size, CGlobalItems &globals)
     if(!globals.quiet) fprintf(stderr, "done\n");
 
     globals.timer.start();
-    if(file.seek_test(globals.timer.random_source, globals.quiet, *globals.syn))
+    if(file.seek_test(globals.timer.random_source, globals.quiet, globals.file_seeks, globals.file_seek_procs, *globals.syn))
       return 1;
 
     /*
@@ -727,7 +741,7 @@ TestDirOps(int directory_size, int max_size, int min_size
   // then the storage of file names will take more than half RAM and there
   // won't be enough RAM to have Bonnie++ paged in and to have a reasonable
   // meta-data cache.
-  if(globals.ram && directory_size * MaxDataPerFile * 2 > (globals.ram << 10))
+  if(globals.ram && directory_size * MaxDataPerFile * 2 > (unsigned int)((globals.ram << 10)))
   {
     fprintf(stderr
         , "When testing %dK of files in %d MiB of RAM the system is likely to\n"

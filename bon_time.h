@@ -33,7 +33,7 @@ public:
   void stop_and_record(tests_t test);
   void add_delta_report(report_s &rep, tests_t test);
   int DoReportIO(int file_size, int char_file_size
-               , int io_chunk_size, FILE *fp);
+               , int io_chunk_size, int Seeks, int SeekProcCount, FILE *fp);
   int DoReportFile(int directory_size
                  , int max_size, int min_size, int num_directories
                  , int file_chunk_size, FILE *fp);

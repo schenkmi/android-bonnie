@@ -3,8 +3,8 @@
 
 using namespace std;
 
-#define BON_VERSION "1.96"
-#define CSV_VERSION "1.96"
+#define BON_VERSION "1.98"
+#define CSV_VERSION "1.98"
 
 #include "port.h"
 #include <stdio.h>
@@ -23,9 +23,9 @@ typedef FILE *PFILE;
 // the name and pointer to file name
 #define MaxDataPerFile (MaxNameLen + 6 + 1 + sizeof(void *))
 #define MinTime (0.5)
-#define Seeks (8192)
+#define DefaultSeeks (8192)
 #define UpdateSeek (10)
-#define SeekProcCount (5)
+#define DefaultSeekProcCount (5)
 #define DefaultChunkBits (13)
 #define DefaultChunkSize (1 << DefaultChunkBits)
 #define UnitBits (20)
