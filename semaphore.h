@@ -4,6 +4,15 @@
 #include <sys/ipc.h>
 #include "sem.h"
 
+#ifndef SEMUN_IN_SEM_H
+union semun
+{
+  int val;                    /* value for SETVAL */
+  struct semid_ds *buf;       /* buffer for IPC_STAT, IPC_SET */
+  unsigned short int *array;  /* array for GETALL, SETALL */
+  struct seminfo *__buf;      /* buffer for IPC_INFO */
+};
+#endif
 
 class Semaphore
 {

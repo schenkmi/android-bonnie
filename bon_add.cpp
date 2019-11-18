@@ -1,6 +1,6 @@
-#include <vector>
 #include "bonnie.h"
 #include <stdio.h>
+#include <vector>
 #include <string.h>
 #include <math.h>
 

@@ -96,9 +96,10 @@ int CFileOp::action(PVOID)
   return 0;
 }
 
-int CFileOp::seek_test(Rand &r, bool quiet, Sync &s)
+int CFileOp::seek_test(Rand &r, bool quiet, int Seeks, int SeekProcCount, Sync &s)
 {
-  int seek_tickets[SeekProcCount + Seeks];
+  int message_count = SeekProcCount + Seeks;
+  int *seek_tickets = (int *)malloc(sizeof(int) * message_count);
   int next;
   for(next = 0; next < Seeks; next++)
   {
@@ -118,7 +119,7 @@ int CFileOp::seek_test(Rand &r, bool quiet, Sync &s)
   if(s.decrement_and_wait(Lseek))
     return 1;
   if(!quiet) fprintf(stderr, "start 'em...");
-  if(Write(seek_tickets, sizeof(seek_tickets), 0) != int(sizeof(seek_tickets)) )
+  if(Write(seek_tickets, sizeof(int) * message_count, 0) != (int)sizeof(int) * message_count)
   {
     fprintf(stderr, "Can't write tickets.\n");
     return 1;

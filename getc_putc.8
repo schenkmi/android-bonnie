@@ -35,9 +35,9 @@ the directory to use for the tests.
 the size of the file for byte IO performance measured in kilobytes.  NB You can
 specify the size in mega\-bytes if you add 'm' to the end of the number.
 
-The default for this test is to test with a 40MiB file.  Of the file only 1/32
+The default for this test is to test with a 512MiB file.  Of the file only 1/64
 of it will be used for write() and read() system calls (anything else takes
-too long), and only 1/4 of it will be used for locked getc() and putc().
+too long).
 
 .TP
 .B \-m

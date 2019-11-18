@@ -124,7 +124,31 @@ int BonTimer::print_stat(tests_t test, int test_size)
     else
     {
       if(m_type == txt)
-        fprintf(m_fp, " %5d", int(stat));
+      {
+        if(test < Lseek)
+        {
+          if(stat < 10000.0)
+          {
+            fprintf(m_fp, " %4dk", (int)stat);
+          }
+          else if(stat / 1024.0 < 1000.0)
+          {
+            stat = stat / 1024.0;
+            if(stat < 100.0)
+              fprintf(m_fp, " %4.1fm", stat);
+            else
+              fprintf(m_fp, " %4dm", (int)(stat + 0.5));
+          }
+          else
+          {
+            fprintf(m_fp, " %4.1fg", stat / 1024.0 / 1024.0);
+          }
+        }
+        else
+        {
+          fprintf(m_fp, " %5d", stat);
+        }
+      }
       else
         fprintf(m_fp, ",%d", int(stat));
     }
@@ -175,7 +199,7 @@ int BonTimer::print_latency(tests_t test)
 void
 BonTimer::PrintHeader(FILE *fp)
 {
-  fprintf(fp, "format_version,bonnie_version,name,file_size,io_chunk_size,putc,putc_cpu,put_block,put_block_cpu,rewrite,rewrite_cpu,getc,getc_cpu,get_block,get_block_cpu,seeks,seeks_cpu");
+  fprintf(fp, "format_version,bonnie_version,name,concurrency,seed,file_size,io_chunk_size,putc,putc_cpu,put_block,put_block_cpu,rewrite,rewrite_cpu,getc,getc_cpu,get_block,get_block_cpu,seeks,seeks_cpu");
   fprintf(fp, ",num_files,max_size,min_size,num_dirs,file_chunk_size,seq_create,seq_create_cpu,seq_stat,seq_stat_cpu,seq_del,seq_del_cpu,ran_create,ran_create_cpu,ran_stat,ran_stat_cpu,ran_del,ran_del_cpu");
   fprintf(fp, ",putc_latency,put_block_latency,rewrite_latency,getc_latency,get_block_latency,seeks_latency,seq_create_latency,seq_stat_latency,seq_del_latency,ran_create_latency,ran_stat_latency,ran_del_latency");
   fprintf(fp, "\n");
@@ -211,7 +235,7 @@ void print_size(char *buf, unsigned int size, CPCCHAR units)
 
 int
 BonTimer::DoReportIO(int file_size, int char_file_size
-                   , int io_chunk_size, FILE *fp)
+                   , int io_chunk_size, int Seeks, int SeekProcCount, FILE *fp)
 {
   int i;
   m_fp = fp;
@@ -226,26 +250,54 @@ BonTimer::DoReportIO(int file_size, int char_file_size
       fprintf(m_fp, "Version %5s       ", BON_VERSION);
       fprintf(m_fp,
         "------Sequential Output------ --Sequential Input- --Random-\n");
-      fprintf(m_fp, "Concurrency %3d     ", m_concurrency);
+      fprintf(m_fp, "                    ");
       fprintf(m_fp,
         "-Per Chr- --Block-- -Rewrite- -Per Chr- --Block-- --Seeks--\n");
-      if(io_chunk_size == DefaultChunkSize)
-        fprintf(m_fp, "Machine        Size ");
-      else
-        fprintf(m_fp, "Machine   Size:chnk ");
-      fprintf(m_fp, "K/sec %%CP K/sec %%CP K/sec %%CP K/sec %%CP K/sec ");
+      fprintf(m_fp, "Name:Size etc       ");
+      fprintf(m_fp, " /sec %%CP  /sec %%CP  /sec %%CP  /sec %%CP  /sec ");
       fprintf(m_fp, "%%CP  /sec %%CP\n");
     }
     char size_buf[1024];
     print_size(size_buf, file_size, "MG");
     char *tmp = size_buf + strlen(size_buf);
-    if(io_chunk_size != DefaultChunkSize)
+    if(m_type == txt)
     {
       strcat(tmp, separator);
-      tmp += strlen(tmp);
-      print_size(tmp, io_chunk_size, " km");
+      tmp++;
+      if(io_chunk_size != DefaultChunkSize)
+      {
+        print_size(tmp, io_chunk_size, " km");
+        tmp += strlen(tmp);
+      }
+      strcat(tmp, separator);
+      tmp++;
+      if(m_concurrency != 1)
+      {
+        sprintf(tmp, "%d", m_concurrency);
+        tmp += strlen(tmp);
+      }
+      strcat(tmp, separator);
+      tmp++;
+      if(Seeks != DefaultSeeks)
+      {
+        sprintf(tmp, "%d", Seeks);
+        tmp += strlen(tmp);
+      }
+      strcat(tmp, separator);
+      tmp++;
+      if(SeekProcCount != DefaultSeekProcCount)
+      {
+        sprintf(tmp, "%d", SeekProcCount);
+        tmp += strlen(tmp) - 1;
+      }
+      tmp--;
+      while(*tmp == separator[0] && tmp > size_buf)
+      {
+        *tmp = 0;
+        tmp--;
+      }
     }
-    else if(m_type == csv)
+    else
     {
       strcat(tmp, separator);
       tmp += strlen(tmp);
@@ -264,16 +316,25 @@ BonTimer::DoReportIO(int file_size, int char_file_size
       // set cur to point to a byte past where we end the machine name
       // size of the buf - size of the new data - 1 for the space - 1 for the
       // terminating zero on the string
-      char *cur = &buf[txt_machine_size - strlen(size_buf) - 2];
-      *cur = ' '; // make cur a space
-      cur++; // increment to where we store the size
+      char *cur;
+      int offset = txt_machine_size - strlen(size_buf) - 2;
+      if(offset < 0)
+      {
+        cur = buf;
+      }
+      else
+      {
+        cur = &buf[offset];
+        *cur = ' '; // make cur a space
+        cur++; // increment to where we store the size
+      }
       strcpy(cur, size_buf);  // copy the size in
       fputs(buf, m_fp);
     }
     else
     {
-      printf(CSV_VERSION "," BON_VERSION ",%s,%d,%s,%s", m_name
-           , m_concurrency, random_source.getSeed().c_str(), size_buf);
+      printf(CSV_VERSION "," BON_VERSION ",%s,%d,%s,%s,%d,%d", m_name
+           , m_concurrency, random_source.getSeed().c_str(), size_buf, Seeks, SeekProcCount);
     }
     for(i = ByteWrite; i < Lseek; i++)
     {
@@ -293,7 +354,7 @@ BonTimer::DoReportIO(int file_size, int char_file_size
   }
   else if(m_type == csv)
   {
-    fprintf(m_fp, CSV_VERSION "," BON_VERSION ",%s,%d,%s,,,,,,,,,,,,,", m_name
+    fprintf(m_fp, CSV_VERSION "," BON_VERSION ",%s,%d,%s,,,,,,,,,,,,,,,,", m_name
           , m_concurrency, random_source.getSeed().c_str());
   }
   return 0;
